@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Planner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Study Planner</h1>
+      <p>Плануй свої навчальні завдання</p>
+    </header>
+
+    <section class="task-form">
+      <h2>Додати нове завдання</h2>
+
+      <input type="text" id="title" placeholder="Назва завдання">
+      <input type="text" id="subject" placeholder="Предмет">
+      <input type="date" id="deadline">
+
+      <select id="priority">
+        <option value="low">Низький пріоритет</option>
+        <option value="medium">Середній пріоритет</option>
+        <option value="high">Високий пріоритет</option>
+      </select>
+
+      <button id="addTaskBtn">Додати</button>
+    </section>
+
+    <section class="filters">
+      <h2>Фільтри</h2>
+      <button data-filter="all">Усі</button>
+      <button data-filter="completed">Виконані</button>
+      <button data-filter="active">Невиконані</button>
+    </section>
+
+    <section class="stats">
+      <h2>Статистика</h2>
+      <p>Всього: <span id="totalTasks">0</span></p>
+      <p>Виконано: <span id="completedTasks">0</span></p>
+      <p>Невиконано: <span id="activeTasks">0</span></p>
+    </section>
+
+    <section class="task-list-section">
+      <h2>Список завдань</h2>
+      <div id="taskList"></div>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
