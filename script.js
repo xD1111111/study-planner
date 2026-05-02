@@ -1,30 +1,51 @@
-const titleInput = document.getElementById("title");
-const subjectInput = document.getElementById("subject");
+// ===== DOM ELEMENTS =====
+const titleInput    = document.getElementById("title");
+const subjectInput  = document.getElementById("subject");
 const deadlineInput = document.getElementById("deadline");
 const priorityInput = document.getElementById("priority");
-const addTaskBtn = document.getElementById("addTaskBtn");
-const taskList = document.getElementById("taskList");
+const addTaskBtn    = document.getElementById("addTaskBtn");
+const taskList      = document.getElementById("taskList");
 
-const totalTasks = document.getElementById("totalTasks");
+const totalTasks     = document.getElementById("totalTasks");
 const completedTasks = document.getElementById("completedTasks");
-const activeTasks = document.getElementById("activeTasks");
+const activeTasks    = document.getElementById("activeTasks");
 
-let tasks = [];
+// ===== STORAGE =====
+function saveToStorage() {
+  localStorage.setItem("study-planner-tasks", JSON.stringify(tasks));
+}
 
+function loadFromStorage() {
+  try {
+    return JSON.parse(localStorage.getItem("study-planner-tasks")) || [];
+  } catch {
+    return [];
+  }
+}
+
+let tasks = loadFromStorage();
+
+// ===== XSS PROTECTION =====
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// ===== RENDER =====
 function renderTasks() {
   taskList.innerHTML = "";
 
   tasks.forEach((task) => {
     const taskCard = document.createElement("div");
     taskCard.classList.add("task-card", `priority-${task.priority}`);
-
-    if (task.completed) {
-      taskCard.classList.add("completed");
-    }
+    if (task.completed) taskCard.classList.add("completed");
 
     taskCard.innerHTML = `
-      <h3>${task.title}</h3>
-      <p><strong>Предмет:</strong> ${task.subject}</p>
+      <h3>${escapeHtml(task.title)}</h3>
+      <p><strong>Предмет:</strong> ${escapeHtml(task.subject)}</p>
       <p><strong>Дедлайн:</strong> ${task.deadline}</p>
       <p><strong>Пріоритет:</strong> ${task.priority}</p>
       <div class="task-buttons">
@@ -39,51 +60,56 @@ function renderTasks() {
   updateStats();
 }
 
+// ===== ADD =====
 function addTask() {
-  const title = titleInput.value.trim();
-  const subject = subjectInput.value.trim();
+  const title    = titleInput.value.trim();
+  const subject  = subjectInput.value.trim();
   const deadline = deadlineInput.value;
   const priority = priorityInput.value;
 
-  if (title === "" || subject === "" || deadline === "") {
+  if (!title || !subject || !deadline) {
     alert("Будь ласка, заповни всі поля.");
     return;
   }
 
-  const newTask = {
+  tasks.push({
     id: Date.now(),
-    title: title,
-    subject: subject,
-    deadline: deadline,
-    priority: priority,
+    title, subject, deadline, priority,
     completed: false
-  };
+  });
 
-  tasks.push(newTask);
+  saveToStorage();
   renderTasks();
 
-  titleInput.value = "";
-  subjectInput.value = "";
+  titleInput.value    = "";
+  subjectInput.value  = "";
   deadlineInput.value = "";
-  priorityInput.value = "low";
+  priorityInput.value = "medium";
 }
 
+// ===== DELETE =====
 function deleteTask(id) {
-  tasks = tasks.filter(task => task.id !== id);
+  tasks = tasks.filter(t => t.id !== id);
+  saveToStorage();
   renderTasks();
 }
 
+// ===== TOGGLE =====
 function toggleTask(id) {
-  tasks = tasks.map(task =>
-    task.id === id ? { ...task, completed: !task.completed } : task
+  tasks = tasks.map(t =>
+    t.id === id ? { ...t, completed: !t.completed } : t
   );
+  saveToStorage();
   renderTasks();
 }
 
+// ===== STATS =====
 function updateStats() {
-  totalTasks.textContent = tasks.length;
-  completedTasks.textContent = tasks.filter(task => task.completed).length;
-  activeTasks.textContent = tasks.filter(task => !task.completed).length;
+  totalTasks.textContent     = tasks.length;
+  completedTasks.textContent = tasks.filter(t => t.completed).length;
+  activeTasks.textContent    = tasks.filter(t => !t.completed).length;
 }
 
 addTaskBtn.addEventListener("click", addTask);
+
+renderTasks();
