@@ -1,0 +1,92 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f6f8;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  width: 80%;
+  max-width: 900px;
+  margin: 30px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+h1, h2 {
+  margin-bottom: 10px;
+}
+
+.task-form,
+.filters,
+.stats,
+.task-list-section {
+  margin-bottom: 30px;
+}
+
+input,
+select,
+button {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background-color: #2d89ef;
+  color: white;
+  border-radius: 8px;
+}
+
+button:hover {
+  background-color: #1b5fab;
+}
+
+.task-card {
+  border: 1px solid #ddd;
+  border-left: 6px solid #2d89ef;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  background-color: #fafafa;
+}
+
+.task-card.completed {
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+.task-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.task-buttons button {
+  width: auto;
+  flex: 1;
+}
+
+.priority-low {
+  border-left-color: green;
+}
+
+.priority-medium {
+  border-left-color: orange;
+}
+
+.priority-high {
+  border-left-color: red;
+}
