@@ -6,9 +6,17 @@ const priorityInput = document.getElementById("priority");
 const addTaskBtn    = document.getElementById("addTaskBtn");
 const taskList      = document.getElementById("taskList");
 
-const totalTasks     = document.getElementById("totalTasks");
-const completedTasks = document.getElementById("completedTasks");
-const activeTasks    = document.getElementById("activeTasks");
+const totalTasksEl     = document.getElementById("totalTasks");
+const completedTasksEl = document.getElementById("completedTasks");
+const activeTasksEl    = document.getElementById("activeTasks");
+
+// ===== STATE =====
+let tasks        = loadFromStorage();
+let activeFilter = "all";
+let activeSort   = "date-added";
+
+const priorityOrder  = { high: 0, medium: 1, low: 2 };
+const priorityLabels = { low: "Низький", medium: "Середній", high: "Високий" };
 
 // ===== STORAGE =====
 function saveToStorage() {
@@ -23,8 +31,6 @@ function loadFromStorage() {
   }
 }
 
-let tasks = loadFromStorage();
-
 // ===== XSS PROTECTION =====
 function escapeHtml(str) {
   return str
@@ -34,11 +40,36 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
+// ===== FILTERING & SORTING =====
+function getFilteredSortedTasks() {
+  let result = [...tasks];
+
+  if (activeFilter === "completed") result = result.filter(t => t.completed);
+  if (activeFilter === "active")    result = result.filter(t => !t.completed);
+
+  if (activeSort === "priority") {
+    result.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  } else if (activeSort === "deadline") {
+    result.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  } else {
+    result.sort((a, b) => b.id - a.id);
+  }
+
+  return result;
+}
+
 // ===== RENDER =====
 function renderTasks() {
+  const visible = getFilteredSortedTasks();
   taskList.innerHTML = "";
 
-  tasks.forEach((task) => {
+  if (visible.length === 0) {
+    taskList.innerHTML = `<p style="color:#7a8099;text-align:center;padding:30px 0;">Немає завдань</p>`;
+    updateStats();
+    return;
+  }
+
+  visible.forEach((task) => {
     const taskCard = document.createElement("div");
     taskCard.classList.add("task-card", `priority-${task.priority}`);
     if (task.completed) taskCard.classList.add("completed");
@@ -47,10 +78,10 @@ function renderTasks() {
       <h3>${escapeHtml(task.title)}</h3>
       <p><strong>Предмет:</strong> ${escapeHtml(task.subject)}</p>
       <p><strong>Дедлайн:</strong> ${task.deadline}</p>
-      <p><strong>Пріоритет:</strong> ${task.priority}</p>
+      <p><strong>Пріоритет:</strong> ${priorityLabels[task.priority]}</p>
       <div class="task-buttons">
-        <button onclick="toggleTask(${task.id})">Виконано</button>
-        <button onclick="deleteTask(${task.id})">Видалити</button>
+        <button onclick="toggleTask(${task.id})">${task.completed ? "↩ Відновити" : "✓ Виконано"}</button>
+        <button onclick="deleteTask(${task.id})">🗑 Видалити</button>
       </div>
     `;
 
@@ -105,11 +136,21 @@ function toggleTask(id) {
 
 // ===== STATS =====
 function updateStats() {
-  totalTasks.textContent     = tasks.length;
-  completedTasks.textContent = tasks.filter(t => t.completed).length;
-  activeTasks.textContent    = tasks.filter(t => !t.completed).length;
+  totalTasksEl.textContent     = tasks.length;
+  completedTasksEl.textContent = tasks.filter(t => t.completed).length;
+  activeTasksEl.textContent    = tasks.filter(t => !t.completed).length;
 }
 
+// ===== FILTER BUTTONS =====
 addTaskBtn.addEventListener("click", addTask);
+
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeFilter = btn.dataset.filter;
+    renderTasks();
+  });
+});
 
 renderTasks();
