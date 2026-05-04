@@ -9,6 +9,9 @@ const taskList      = document.getElementById("taskList");
 const totalTasksEl     = document.getElementById("totalTasks");
 const completedTasksEl = document.getElementById("completedTasks");
 const activeTasksEl    = document.getElementById("activeTasks");
+const progressFill     = document.getElementById("progressFill");
+const progressLabel    = document.getElementById("progressLabel");
+const taskCountBadge   = document.getElementById("taskCount");
 
 // ===== STATE =====
 let tasks        = loadFromStorage();
@@ -40,6 +43,21 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
+// ===== OVERDUE =====
+function isOverdue(deadline) {
+  if (!deadline) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(deadline) < today;
+}
+
+// ===== FORMAT DATE =====
+function formatDate(dateStr) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("uk-UA", { day: "numeric", month: "short", year: "numeric" });
+}
+
 // ===== FILTERING & SORTING =====
 function getFilteredSortedTasks() {
   let result = [...tasks];
@@ -61,34 +79,68 @@ function getFilteredSortedTasks() {
 // ===== RENDER =====
 function renderTasks() {
   const visible = getFilteredSortedTasks();
-  taskList.innerHTML = "";
 
   if (visible.length === 0) {
-    taskList.innerHTML = `<p style="color:#7a8099;text-align:center;padding:30px 0;">Немає завдань</p>`;
+    taskList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🎯</div>
+        <p>${activeFilter === "all" ? "Тут з'являться твої завдання" : "Немає завдань у цій категорії"}</p>
+        ${activeFilter === "all" ? "<span>Додай перше завдання зліва →</span>" : ""}
+      </div>`;
     updateStats();
     return;
   }
 
-  visible.forEach((task) => {
-    const taskCard = document.createElement("div");
-    taskCard.classList.add("task-card", `priority-${task.priority}`);
-    if (task.completed) taskCard.classList.add("completed");
+  taskList.innerHTML = "";
 
-    taskCard.innerHTML = `
-      <h3>${escapeHtml(task.title)}</h3>
-      <p><strong>Предмет:</strong> ${escapeHtml(task.subject)}</p>
-      <p><strong>Дедлайн:</strong> ${task.deadline}</p>
-      <p><strong>Пріоритет:</strong> ${priorityLabels[task.priority]}</p>
+  visible.forEach((task, index) => {
+    const overdue = isOverdue(task.deadline) && !task.completed;
+    const card = document.createElement("div");
+    card.classList.add("task-card", `priority-${task.priority}`);
+    if (task.completed) card.classList.add("completed");
+    if (overdue) card.classList.add("overdue");
+    card.style.animationDelay = `${index * 0.05}s`;
+
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="task-title">${escapeHtml(task.title)}</span>
+        <span class="priority-badge">${priorityLabels[task.priority]}</span>
+      </div>
+      <div class="card-meta">
+        <span class="meta-item"><span class="icon">📚</span>${escapeHtml(task.subject)}</span>
+        <span class="meta-item">
+          <span class="icon">📅</span>${formatDate(task.deadline)}
+          ${overdue ? '<span class="overdue-tag">Прострочено</span>' : ""}
+        </span>
+      </div>
       <div class="task-buttons">
-        <button onclick="toggleTask(${task.id})">${task.completed ? "↩ Відновити" : "✓ Виконано"}</button>
-        <button onclick="deleteTask(${task.id})">🗑 Видалити</button>
+        <button class="btn-complete" onclick="toggleTask(${task.id})">
+          ${task.completed ? "↩ Відновити" : "✓ Виконано"}
+        </button>
+        <button class="btn-delete" onclick="deleteTask(${task.id})">🗑 Видалити</button>
       </div>
     `;
 
-    taskList.appendChild(taskCard);
+    taskList.appendChild(card);
   });
 
   updateStats();
+}
+
+// ===== STATS =====
+function updateStats() {
+  const total     = tasks.length;
+  const completed = tasks.filter(t => t.completed).length;
+  const active    = tasks.filter(t => !t.completed).length;
+  const pct       = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  totalTasksEl.textContent     = total;
+  completedTasksEl.textContent = completed;
+  activeTasksEl.textContent    = active;
+  progressFill.style.width     = pct + "%";
+  progressLabel.textContent    = pct + "%";
+
+  taskCountBadge.textContent = getFilteredSortedTasks().length;
 }
 
 // ===== ADD =====
@@ -99,7 +151,7 @@ function addTask() {
   const priority = priorityInput.value;
 
   if (!title || !subject || !deadline) {
-    alert("Будь ласка, заповни всі поля.");
+    shake(addTaskBtn);
     return;
   }
 
@@ -116,6 +168,7 @@ function addTask() {
   subjectInput.value  = "";
   deadlineInput.value = "";
   priorityInput.value = "medium";
+  titleInput.focus();
 }
 
 // ===== DELETE =====
@@ -134,15 +187,20 @@ function toggleTask(id) {
   renderTasks();
 }
 
-// ===== STATS =====
-function updateStats() {
-  totalTasksEl.textContent     = tasks.length;
-  completedTasksEl.textContent = tasks.filter(t => t.completed).length;
-  activeTasksEl.textContent    = tasks.filter(t => !t.completed).length;
+// ===== SHAKE =====
+function shake(el) {
+  el.style.animation = "none";
+  el.offsetHeight;
+  el.style.animation = "shake 0.4s ease";
+  setTimeout(() => el.style.animation = "", 500);
 }
 
-// ===== FILTER BUTTONS =====
+// ===== EVENTS =====
 addTaskBtn.addEventListener("click", addTask);
+
+titleInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") addTask();
+});
 
 document.querySelectorAll(".filter-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -152,5 +210,27 @@ document.querySelectorAll(".filter-btn").forEach(btn => {
     renderTasks();
   });
 });
+
+document.querySelectorAll(".sort-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".sort-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeSort = btn.dataset.sort;
+    renderTasks();
+  });
+});
+
+// ===== SHAKE KEYFRAME =====
+const style = document.createElement("style");
+style.textContent = `
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-6px); }
+    40%       { transform: translateX(6px); }
+    60%       { transform: translateX(-4px); }
+    80%       { transform: translateX(4px); }
+  }
+`;
+document.head.appendChild(style);
 
 renderTasks();
